@@ -123,6 +123,7 @@ func main() {
 	// path := "resources/johann-siemens-EPy0gBJzzZU-unsplash.jpg"
 	path := "resources/circle.png"
 	// path := "resources/tree-1798062137.jpg"
+	// path := "resources/Bikesgray.jpg"
 	image_reader, err := os.Open(path)
 	if err != nil {
 		log.Fatal(err)
@@ -145,11 +146,6 @@ func main() {
 	}
 
 	*gray = image_processing.CannyEdgeDetect(*gray)
-
-	err = image_processing.WriteImage("resources/gaussian.png", gray)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// scale_x := min(1, (gray.Bounds().Max.X)/(term_width))
 	// scale_y := min(1, (gray.Bounds().Max.Y)/(term_height*2))

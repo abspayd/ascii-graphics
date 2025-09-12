@@ -25,8 +25,11 @@ func WriteImage(path string, img image.Image) error {
 	return png.Encode(file, img)
 }
 
-func CannyEdgeDetect(img image.Gray16) image.Gray16 {
-	img = GaussianFilter(img, 5, 2.0)
+func SobelGradient(img image.Gray16) image.Gray16 {
+	output := image.NewGray16(img.Bounds())
+
+	img_width := img.Bounds().Max.X
+	img_height := img.Bounds().Max.Y
 
 	gx_kernel := [][]float64{
 		{-1, 0, 1},
@@ -36,13 +39,39 @@ func CannyEdgeDetect(img image.Gray16) image.Gray16 {
 	gy_kernel := [][]float64{
 		{-1, -2, -1},
 		{0, 0, 0},
-		{1, -2, 1},
+		{1, 2, 1},
 	}
 	gx := convolute(img, gx_kernel)
 	gy := convolute(img, gy_kernel)
 
 	WriteImage("resources/gx.png", &gx)
 	WriteImage("resources/gy.png", &gy)
+
+	for y := range img_height {
+		for x := range img_width {
+			gx_val := uint64(gx.Gray16At(x, y).Y)
+			gy_val := uint64(gy.Gray16At(x, y).Y)
+
+			gradient := math.Sqrt(float64(gx_val*gx_val + gy_val*gy_val))
+			output.SetGray16(x, y, color.Gray16{Y: uint16(gradient)})
+		}
+	}
+
+	return *output
+}
+
+func CannyEdgeDetect(img image.Gray16) image.Gray16 {
+	img = GaussianFilter(img, 5, 2.0)
+	err := WriteImage("resources/gaussian.png", &img)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	img = SobelGradient(img)
+	err = WriteImage("resources/gradient.png", &img)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	return img
 }
@@ -105,6 +134,15 @@ func convolute(img image.Gray16, kernel [][]float64) image.Gray16 {
 
 	return *output
 }
+
+// func threadedConvolute(img image.Gray16, kernel [][]float64) image.Gray16 {
+// 	output := image.NewGray16(img.Bounds())
+//
+// 	n := 5
+//
+//
+// 	return *output
+// }
 
 func GaussianFilter(img image.Gray16, kernel_size int, sigma float64) image.Gray16 {
 	kernel, err := generateGaussianKernel(kernel_size, sigma)
