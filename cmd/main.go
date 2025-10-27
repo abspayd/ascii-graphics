@@ -121,9 +121,9 @@ func main() {
 	// }
 
 	// path := "resources/johann-siemens-EPy0gBJzzZU-unsplash.jpg"
-	path := "resources/circle.png"
+	// path := "resources/circle.png"
 	// path := "resources/tree-1798062137.jpg"
-	// path := "resources/Bikesgray.jpg"
+	path := "resources/Bikesgray.jpg"
 	image_reader, err := os.Open(path)
 	if err != nil {
 		log.Fatal(err)
