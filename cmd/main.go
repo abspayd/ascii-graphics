@@ -129,6 +129,7 @@ func main() {
 	// path := "resources/tree-1798062137.jpg"
 	// path := "resources/Bikesgray.jpg"
 	path := "resources/valve.png"
+	// path := "resources/gradient.png"
 	image_reader, err := os.Open(path)
 	if err != nil {
 		log.Fatal(err)

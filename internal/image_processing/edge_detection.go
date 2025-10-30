@@ -56,24 +56,24 @@ func SobelGradient(img image.Gray16) image.Gray16 {
 		{0, 0, 0},
 		{1, 2, 1},
 	}
-	gx, err := convoluteMultiThreaded(img, gx_kernel, true)
-	if err != nil {
-		log.Fatal(err)
-	}
-	gy, err := convoluteMultiThreaded(img, gy_kernel, true)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// gx := convoluteMultiThreaded(img, gx_kernel, true)
+	// gy := convoluteMultiThreaded(img, gy_kernel, true)
 
-	WriteImage("resources/gx.png", &gx)
-	WriteImage("resources/gy.png", &gy)
+	gx := convoluteImage(img, gx_kernel)
+	gy := convoluteImage(img, gy_kernel)
+
+	WriteImage("resources/gx.png", matrixToImage(gx))
+	WriteImage("resources/gy.png", matrixToImage(gy))
 
 	for y := range img_height {
 		for x := range img_width {
-			gx_val := int64(gx.Gray16At(x, y).Y)
-			gy_val := int64(gy.Gray16At(x, y).Y)
+			// gx_val := int64(gx.Gray16At(x, y).Y)
+			// gy_val := int64(gy.Gray16At(x, y).Y)
 
-			gradient := math.Sqrt(float64((gx_val * gx_val) + (gy_val * gy_val)))
+			gx_val := gx[y][x]
+			gy_val := gy[y][x]
+
+			gradient := math.Sqrt(math.Pow(gx_val, 2) + math.Pow(gy_val, 2))
 			if gradient < 0 {
 				logger.Logger.Printf("Gradient: %f\n", gradient)
 			}
@@ -86,7 +86,7 @@ func SobelGradient(img image.Gray16) image.Gray16 {
 }
 
 func CannyEdgeDetect(img image.Gray16) image.Gray16 {
-	img = GaussianFilter(img, 5, 2)
+	img = GaussianFilter(img, 15, 2)
 	err := WriteImage("resources/gaussian.png", &img)
 	if err != nil {
 		log.Fatal(err)
@@ -160,7 +160,7 @@ func convolute(img image.Gray16, kernel [][]float64) image.Gray16 {
 	return *output
 }
 
-func convoluteMultiThreaded(img image.Gray16, kernel [][]float64, allow_negative bool) (image.Gray16, error) {
+func convoluteMultiThreaded(img image.Gray16, kernel [][]float64, allow_negative bool) image.Gray16 {
 	result := image.NewGray16(img.Bounds())
 
 	var wg sync.WaitGroup
@@ -183,7 +183,7 @@ func convoluteMultiThreaded(img image.Gray16, kernel [][]float64, allow_negative
 
 	wg.Wait()
 
-	return *result, nil
+	return *result
 }
 
 func convoluteWorker(input_img *image.Gray16, output_img *image.Gray16, kernel [][]float64, start_row, end_row int, wg *sync.WaitGroup, allow_negative bool) {
@@ -218,10 +218,9 @@ func GaussianFilter(img image.Gray16, kernel_size int, sigma float64) image.Gray
 		logger.Logger.Fatal(err)
 	}
 
-	result, err := convoluteMultiThreaded(img, kernel, false)
-	if err != nil {
-		logger.Logger.Fatal(err)
-	}
+	// result := convoluteMultiThreaded(img, kernel, false)
+	m := convoluteImage(img, kernel)
+	result := *matrixToImage(m)
 
 	return result
 }
