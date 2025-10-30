@@ -9,7 +9,6 @@ import (
 	"log"
 	"math"
 	"os"
-	"sync"
 )
 
 func min(a, b int) int {
@@ -56,8 +55,6 @@ func SobelGradient(img image.Gray16) image.Gray16 {
 		{0, 0, 0},
 		{1, 2, 1},
 	}
-	// gx := convoluteMultiThreaded(img, gx_kernel, true)
-	// gy := convoluteMultiThreaded(img, gy_kernel, true)
 
 	gx := convoluteImage(img, gx_kernel)
 	gy := convoluteImage(img, gy_kernel)
@@ -67,17 +64,10 @@ func SobelGradient(img image.Gray16) image.Gray16 {
 
 	for y := range img_height {
 		for x := range img_width {
-			// gx_val := int64(gx.Gray16At(x, y).Y)
-			// gy_val := int64(gy.Gray16At(x, y).Y)
-
 			gx_val := gx[y][x]
 			gy_val := gy[y][x]
 
 			gradient := math.Sqrt(math.Pow(gx_val, 2) + math.Pow(gy_val, 2))
-			if gradient < 0 {
-				logger.Logger.Printf("Gradient: %f\n", gradient)
-			}
-
 			output.SetGray16(x, y, color.Gray16{Y: uint16(gradient)})
 		}
 	}
@@ -160,57 +150,52 @@ func convolute(img image.Gray16, kernel [][]float64) image.Gray16 {
 	return *output
 }
 
-func convoluteMultiThreaded(img image.Gray16, kernel [][]float64, allow_negative bool) image.Gray16 {
-	result := image.NewGray16(img.Bounds())
+// func convoluteMultiThreaded(img image.Gray16, kernel [][]float64, allow_negative bool) image.Gray16 {
+// 	result := image.NewGray16(img.Bounds())
+//
+// 	var wg sync.WaitGroup
+//
+// 	const n_threads = 25
+// 	num_rows := img.Bounds().Max.Y / n_threads
+//
+// 	for t := range n_threads {
+// 		wg.Add(1)
+//
+// 		start_row := t * num_rows
+// 		end_row := start_row + num_rows
+//
+// 		if t == n_threads-1 {
+// 			end_row = img.Bounds().Max.Y
+// 		}
+//
+// 		go convoluteWorker(&img, result, kernel, start_row, end_row, &wg, allow_negative)
+// 	}
+//
+// 	wg.Wait()
+//
+// 	return *result
+// }
 
-	var wg sync.WaitGroup
-
-	const n_threads = 25
-	num_rows := img.Bounds().Max.Y / n_threads
-
-	for t := range n_threads {
-		wg.Add(1)
-
-		start_row := t * num_rows
-		end_row := start_row + num_rows
-
-		if t == n_threads-1 {
-			end_row = img.Bounds().Max.Y
-		}
-
-		go convoluteWorker(&img, result, kernel, start_row, end_row, &wg, allow_negative)
-	}
-
-	wg.Wait()
-
-	return *result
-}
-
-func convoluteWorker(input_img *image.Gray16, output_img *image.Gray16, kernel [][]float64, start_row, end_row int, wg *sync.WaitGroup, allow_negative bool) {
-	defer wg.Done()
-
-	kernel_radius := len(kernel) / 2
-
-	for y := start_row; y <= end_row; y++ {
-		for x := range input_img.Bounds().Max.X {
-			var sum int16 = 0
-			for j := -kernel_radius; j <= kernel_radius; j++ {
-				for i := -kernel_radius; i <= kernel_radius; i++ {
-					if y+j >= 0 && x+i >= 0 && y+j < input_img.Bounds().Max.Y && x+i < input_img.Bounds().Max.X {
-						sum += int16(float64(kernel[i+kernel_radius][j+kernel_radius]) * float64(input_img.Gray16At(x+i, y+j).Y))
-					}
-				}
-			}
-
-			if allow_negative && sum < 0 {
-				// TODO: how to handle negative values?
-				sum = 0
-			}
-
-			output_img.SetGray16(x, y, color.Gray16{Y: uint16(sum)})
-		}
-	}
-}
+// func convoluteWorker(input_img *image.Gray16, output_img *image.Gray16, kernel [][]float64, start_row, end_row int, wg *sync.WaitGroup, allow_negative bool) {
+// 	defer wg.Done()
+//
+// 	kernel_radius := len(kernel) / 2
+//
+// 	for y := start_row; y <= end_row; y++ {
+// 		for x := range input_img.Bounds().Max.X {
+// 			var sum int16 = 0
+// 			for j := -kernel_radius; j <= kernel_radius; j++ {
+// 				for i := -kernel_radius; i <= kernel_radius; i++ {
+// 					if y+j >= 0 && x+i >= 0 && y+j < input_img.Bounds().Max.Y && x+i < input_img.Bounds().Max.X {
+// 						sum += int16(float64(kernel[i+kernel_radius][j+kernel_radius]) * float64(input_img.Gray16At(x+i, y+j).Y))
+// 					}
+// 				}
+// 			}
+//
+// 			output_img.SetGray16(x, y, color.Gray16{Y: uint16(sum)})
+// 		}
+// 	}
+// }
 
 func GaussianFilter(img image.Gray16, kernel_size int, sigma float64) image.Gray16 {
 	kernel, err := generateGaussianKernel(kernel_size, sigma)
