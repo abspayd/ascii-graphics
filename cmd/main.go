@@ -92,6 +92,10 @@ func main() {
 
 	logger.Logger.Println("========")
 
+	var a int16 = -128
+	var b uint16 = uint16(a)
+	logger.Logger.Printf("a = %d, b = %d, int16(b) = %d\n", a, b, int16(b))
+
 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	defer term.Restore(int(os.Stdin.Fd()), oldState)
 
@@ -123,7 +127,8 @@ func main() {
 	// path := "resources/johann-siemens-EPy0gBJzzZU-unsplash.jpg"
 	// path := "resources/circle.png"
 	// path := "resources/tree-1798062137.jpg"
-	path := "resources/Bikesgray.jpg"
+	// path := "resources/Bikesgray.jpg"
+	path := "resources/valve.png"
 	image_reader, err := os.Open(path)
 	if err != nil {
 		log.Fatal(err)
@@ -135,7 +140,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	img = fitImageToTerminal(img, image.Rect(0, 0, term_width, term_height))
+	// img = fitImageToTerminal(img, image.Rect(0, 0, term_width, term_height))
 
 	gray := image.NewGray16(img.Bounds())
 	draw.Draw(gray, gray.Bounds(), img, img.Bounds().Min, draw.Src)
@@ -165,7 +170,7 @@ func main() {
 
 	// for y := 0; y <= gray.Bounds().Max.Y && (y/scale_y) <= term_height; y += scale_y {
 	// 	for x := 0; x <= gray.Bounds().Max.X && (x/scale_x) <= term_width; x += scale_x {
-	// 		// color := gray.GrayAt(x, y)
+	// 		// color := gray.Gray16At(x, y)
 	// 		// fmt.Fprint(&buf, string(palette[int(color.Y)%len(palette)]))
 	// 		fmt.Fprint(&buf, "o")
 	// 	}
