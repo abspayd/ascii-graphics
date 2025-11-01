@@ -57,12 +57,17 @@ func max(a, b int) int {
 
 func fitImageToTerminal(img image.Image, termSize image.Rectangle) image.Image {
 	img_bounds := img.Bounds()
-	img_ratio := float64(img_bounds.Dx()) / float64(img_bounds.Dy())
+	// img_ratio := float64(img_bounds.Dx()) / float64(img_bounds.Dy())
 
-	//output_height := min(img_bounds.Dy(), termSize.Dy())
+	output_height := min(img_bounds.Dy(), termSize.Dy())
+
+	img_ratio := float64(img_bounds.Dy()) / float64(output_height)
+
 	// output_width := min(int(float64(output_height)*img_ratio), termSize.Dx())
-	output_height := termSize.Dy()
-	output_width := termSize.Dx()
+	output_width := int(float64(output_height) * img_ratio)
+
+	// output_height := termSize.Dy()
+	// output_width := termSize.Dx()
 	output_bounds := image.Rectangle{
 		Max: image.Point{X: output_width, Y: output_height},
 	}
@@ -91,10 +96,6 @@ func main() {
 	logger.Logger = log.New(logFile, "", log.Ldate|log.Ltime|log.Lshortfile)
 
 	logger.Logger.Println("========")
-
-	var a int16 = -128
-	var b uint16 = uint16(a)
-	logger.Logger.Printf("a = %d, b = %d, int16(b) = %d\n", a, b, int16(b))
 
 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	defer term.Restore(int(os.Stdin.Fd()), oldState)
@@ -128,8 +129,8 @@ func main() {
 	// path := "resources/circle.png"
 	// path := "resources/tree-1798062137.jpg"
 	// path := "resources/Bikesgray.jpg"
+	// path := "resources/lizard.jpg"
 	path := "resources/valve.png"
-	// path := "resources/gradient.png"
 	image_reader, err := os.Open(path)
 	if err != nil {
 		log.Fatal(err)
@@ -153,11 +154,7 @@ func main() {
 
 	*gray = image_processing.CannyEdgeDetect(*gray)
 
-	// scale_x := min(1, (gray.Bounds().Max.X)/(term_width))
-	// scale_y := min(1, (gray.Bounds().Max.Y)/(term_height*2))
-
 	var buf bytes.Buffer
-
 	fmt.Fprint(&buf, "\x1B[2J\x1B[H") // Erase screen and home cursor
 
 	// slices.Reverse(palette)

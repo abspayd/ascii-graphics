@@ -4,7 +4,6 @@ import (
 	"abspayd/ascii-graphics/internal/logger"
 	"fmt"
 	"image"
-	"image/color"
 	"image/png"
 	"log"
 	"math"
@@ -39,9 +38,9 @@ func WriteImage(path string, img image.Image) error {
 	return png.Encode(file, img)
 }
 
-func SobelGradient(img image.Gray16) image.Gray16 {
-	output := image.NewGray16(img.Bounds())
-
+// Find the sobel gradient for an image
+// Returns a magnitude gradient and the direction gradient
+func SobelGradient(img image.Gray16) ([][]float64, [][]float64) {
 	img_width := img.Bounds().Max.X
 	img_height := img.Bounds().Max.Y
 
@@ -56,39 +55,191 @@ func SobelGradient(img image.Gray16) image.Gray16 {
 		{1, 2, 1},
 	}
 
-	gx := convoluteImage(img, gx_kernel)
-	gy := convoluteImage(img, gy_kernel)
+	gx := convolute(img, gx_kernel)
+	gy := convolute(img, gy_kernel)
 
-	WriteImage("resources/gx.png", matrixToImage(gx))
-	WriteImage("resources/gy.png", matrixToImage(gy))
+	gx_image, err := matrixToImage(gx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	WriteImage("resources/gx.png", gx_image)
+	gy_image, err := matrixToImage(gy)
+	if err != nil {
+		log.Fatal(err)
+	}
+	WriteImage("resources/gy.png", gy_image)
+
+	g := make([][]float64, img_height)
+	theta := make([][]float64, img_height)
+	for i := range g {
+		g[i] = make([]float64, img_width)
+		theta[i] = make([]float64, img_width)
+	}
 
 	for y := range img_height {
 		for x := range img_width {
-			gx_val := gx[y][x]
-			gy_val := gy[y][x]
+			gradient := math.Sqrt(math.Pow(gx[y][x], 2) + math.Pow(gy[y][x], 2))
+			direction := math.Atan2(gy[y][x], gx[y][x])
 
-			gradient := math.Sqrt(math.Pow(gx_val, 2) + math.Pow(gy_val, 2))
-			output.SetGray16(x, y, color.Gray16{Y: uint16(gradient)})
+			g[y][x] = gradient
+			theta[y][x] = roundAngle(direction)
 		}
 	}
 
-	return *output
+	return g, theta
+}
+
+// Round an angle to a multiple of a quarter of pi
+func roundAngle(angle float64) float64 {
+	const quarterPi = math.Pi / 4
+
+	multiple := angle / quarterPi
+
+	rounded := math.Round(multiple)
+
+	// normalize the result such that 0 <= result < PI
+	result := math.Mod(rounded*quarterPi, 2.0*math.Pi)
+
+	if result < 0 {
+		result += 2.0 * math.Pi
+	}
+
+	if result >= math.Pi {
+		result -= math.Pi
+	}
+
+	return result
+}
+
+func SuppressGradient(g [][]float64, d [][]float64) [][]float64 {
+	if len(g) != len(d) {
+		log.Fatal("Invalid state: Gradient magnitude and direction do not match!")
+	}
+
+	result := make([][]float64, len(g))
+	for i := range result {
+		result[i] = make([]float64, len(g[0]))
+		copy(result[i], g[i])
+	}
+
+	for y := range g {
+		for x, value := range result[y] {
+			switch d[y][x] {
+			case 0:
+				if x-1 >= 0 {
+					if g[y][x-1] > value {
+						result[y][x] = 0.0
+					}
+				}
+				if x+1 < len(g[y]) {
+					if g[y][x+1] > value {
+						result[y][x] = 0.0
+					}
+				}
+			case math.Pi / 2:
+				if y-1 >= 0 {
+					if g[y-1][x] > value {
+						result[y][x] = 0.0
+					}
+				}
+				if y+1 < len(g) {
+					if g[y+1][x] > value {
+						result[y][x] = 0.0
+					}
+				}
+			case math.Pi / 4:
+				if y-1 >= 0 && x-1 >= 0 {
+					if g[y-1][x-1] > value {
+						result[y][x] = 0
+					}
+				}
+
+				if y+1 < len(g) && x+1 < len(g[y]) {
+					if g[y+1][x+1] > value {
+						result[y][x] = 0
+					}
+				}
+			case (3 * math.Pi) / 4:
+				if x-1 >= 0 && y+1 < len(g) {
+					if g[y+1][x-1] > value {
+						result[y][x] = 0
+					}
+				}
+				if x+1 < len(g[y]) && y-1 >= 0 {
+					if g[y-1][x+1] > value {
+						result[y][x] = 0
+					}
+				}
+
+			}
+		}
+	}
+
+	return result
+}
+
+func Suppress(m [][]float64) [][]float64 {
+
+	result := make([][]float64, len(m))
+	for i := range len(result) {
+		result[i] = make([]float64, len(m[0]))
+		copy(result[i], m[i])
+	}
+
+	mask := [][]float64{
+		{0.5, 0.75, 0.5},
+		{0.75, 0, 0.75},
+		{0.5, 0.75, 0.5},
+	}
+	mask_radius := len(mask) / 2
+
+	for y := range m {
+		for x := range m[y] {
+			for i := -mask_radius; i <= mask_radius; i++ {
+				for j := -mask_radius; j <= mask_radius; j++ {
+					if y+j >= 0 && x+i >= 0 && y+j < len(m) && x+i < len(m[y]) {
+						compare := mask[i+mask_radius][j+mask_radius] * m[y+j][x+i]
+						if result[y][x] < compare {
+							result[y][x] = 0
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return result
 }
 
 func CannyEdgeDetect(img image.Gray16) image.Gray16 {
-	img = GaussianFilter(img, 15, 2)
+	// img = GaussianFilter(img, 15, 2)
+	img = GaussianFilter(img, 5, 1.4)
 	err := WriteImage("resources/gaussian.png", &img)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	img = SobelGradient(img)
-	err = WriteImage("resources/gradient.png", &img)
+	g, d := SobelGradient(img)
+	imgPtr, err := matrixToImage(g)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = WriteImage("resources/gradient.png", imgPtr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return img
+	suppressed := SuppressGradient(g, d)
+	imgPtr, err = matrixToImage(suppressed)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = WriteImage("resources/suppressed2.png", imgPtr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return *imgPtr
 }
 
 func generateGaussianKernel(size int, sigma float64) ([][]float64, error) {
@@ -124,88 +275,18 @@ func generateGaussianKernel(size int, sigma float64) ([][]float64, error) {
 	return kernel, nil
 }
 
-func convolute(img image.Gray16, kernel [][]float64) image.Gray16 {
-	output := image.NewGray16(img.Bounds())
-
-	img_width := img.Bounds().Max.X
-	img_height := img.Bounds().Max.Y
-
-	kernel_radius := len(kernel) / 2
-
-	for y := range img_height {
-		for x := range img_width {
-			var sum uint16 = 0
-			for j := -kernel_radius; j <= kernel_radius; j++ {
-				for i := -kernel_radius; i <= kernel_radius; i++ {
-					if y+j >= 0 && x+i >= 0 && y+j < img_height && x+i < img_width {
-						sum += uint16(float64(kernel[i+kernel_radius][j+kernel_radius]) * float64(img.Gray16At(x+i, y+j).Y))
-					}
-				}
-			}
-
-			output.SetGray16(x, y, color.Gray16{Y: sum})
-		}
-	}
-
-	return *output
-}
-
-// func convoluteMultiThreaded(img image.Gray16, kernel [][]float64, allow_negative bool) image.Gray16 {
-// 	result := image.NewGray16(img.Bounds())
-//
-// 	var wg sync.WaitGroup
-//
-// 	const n_threads = 25
-// 	num_rows := img.Bounds().Max.Y / n_threads
-//
-// 	for t := range n_threads {
-// 		wg.Add(1)
-//
-// 		start_row := t * num_rows
-// 		end_row := start_row + num_rows
-//
-// 		if t == n_threads-1 {
-// 			end_row = img.Bounds().Max.Y
-// 		}
-//
-// 		go convoluteWorker(&img, result, kernel, start_row, end_row, &wg, allow_negative)
-// 	}
-//
-// 	wg.Wait()
-//
-// 	return *result
-// }
-
-// func convoluteWorker(input_img *image.Gray16, output_img *image.Gray16, kernel [][]float64, start_row, end_row int, wg *sync.WaitGroup, allow_negative bool) {
-// 	defer wg.Done()
-//
-// 	kernel_radius := len(kernel) / 2
-//
-// 	for y := start_row; y <= end_row; y++ {
-// 		for x := range input_img.Bounds().Max.X {
-// 			var sum int16 = 0
-// 			for j := -kernel_radius; j <= kernel_radius; j++ {
-// 				for i := -kernel_radius; i <= kernel_radius; i++ {
-// 					if y+j >= 0 && x+i >= 0 && y+j < input_img.Bounds().Max.Y && x+i < input_img.Bounds().Max.X {
-// 						sum += int16(float64(kernel[i+kernel_radius][j+kernel_radius]) * float64(input_img.Gray16At(x+i, y+j).Y))
-// 					}
-// 				}
-// 			}
-//
-// 			output_img.SetGray16(x, y, color.Gray16{Y: uint16(sum)})
-// 		}
-// 	}
-// }
-
 func GaussianFilter(img image.Gray16, kernel_size int, sigma float64) image.Gray16 {
 	kernel, err := generateGaussianKernel(kernel_size, sigma)
 	if err != nil {
 		logger.Logger.Fatal(err)
 	}
 
-	// result := convoluteMultiThreaded(img, kernel, false)
-	m := convoluteImage(img, kernel)
-	result := *matrixToImage(m)
+	m := convolute(img, kernel)
+	imgPtr, err := matrixToImage(m)
+	if err != nil {
+		log.Fatal(err)
+	}
+	result := *imgPtr
 
 	return result
 }

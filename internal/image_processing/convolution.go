@@ -1,13 +1,14 @@
 package image_processing
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"math"
 	"sync"
 )
 
-func convoluteImage(img image.Gray16, kernel [][]float64) [][]float64 {
+func convolute(img image.Gray16, kernel [][]float64) [][]float64 {
 	image_width := img.Bounds().Max.X
 	image_height := img.Bounds().Max.Y
 
@@ -60,7 +61,11 @@ func worker(img *image.Gray16, result *[][]float64, kernel [][]float64, start_ro
 	}
 }
 
-func matrixToImage(m [][]float64) *image.Gray16 {
+func matrixToImage(m [][]float64) (*image.Gray16, error) {
+	if len(m) == 0 {
+		return nil, fmt.Errorf("Cannot convert empty matrix to an image!")
+	}
+
 	img := image.NewGray16(image.Rectangle{
 		Min: image.Point{X: 0, Y: 0},
 		Max: image.Point{X: len(m[0]), Y: len(m)},
@@ -75,5 +80,5 @@ func matrixToImage(m [][]float64) *image.Gray16 {
 		}
 	}
 
-	return img
+	return img, nil
 }
