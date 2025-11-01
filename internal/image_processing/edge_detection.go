@@ -234,7 +234,7 @@ func CannyEdgeDetect(img image.Gray16) image.Gray16 {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = WriteImage("resources/suppressed2.png", imgPtr)
+	err = WriteImage("resources/suppressed.png", imgPtr)
 	if err != nil {
 		log.Fatal(err)
 	}
