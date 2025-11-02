@@ -10,6 +10,11 @@ import (
 	"os"
 )
 
+const (
+	WEAK_EDGE   = 32767
+	STRONG_EDGE = 65535
+)
+
 func min(a, b int) int {
 	if a < b {
 		return a
@@ -124,53 +129,56 @@ func SuppressGradient(g [][]float64, d [][]float64) [][]float64 {
 
 	for y := range g {
 		for x, value := range result[y] {
+			var x1, y1 int
+			var x2, y2 int
+
 			switch d[y][x] {
 			case 0:
-				if x-1 >= 0 {
-					if g[y][x-1] > value {
-						result[y][x] = 0.0
-					}
-				}
-				if x+1 < len(g[y]) {
-					if g[y][x+1] > value {
-						result[y][x] = 0.0
-					}
-				}
+				x1, y1 = x-1, y
+				x2, y2 = x+1, y
 			case math.Pi / 2:
-				if y-1 >= 0 {
-					if g[y-1][x] > value {
-						result[y][x] = 0.0
-					}
-				}
-				if y+1 < len(g) {
-					if g[y+1][x] > value {
-						result[y][x] = 0.0
-					}
-				}
+				x1, y1 = x, y-1
+				x2, y2 = x, y+1
 			case math.Pi / 4:
-				if y-1 >= 0 && x-1 >= 0 {
-					if g[y-1][x-1] > value {
-						result[y][x] = 0
-					}
-				}
-
-				if y+1 < len(g) && x+1 < len(g[y]) {
-					if g[y+1][x+1] > value {
-						result[y][x] = 0
-					}
-				}
+				x1, y1 = x-1, y-1
+				x2, y2 = x+1, y+1
 			case (3 * math.Pi) / 4:
-				if x-1 >= 0 && y+1 < len(g) {
-					if g[y+1][x-1] > value {
-						result[y][x] = 0
-					}
-				}
-				if x+1 < len(g[y]) && y-1 >= 0 {
-					if g[y-1][x+1] > value {
-						result[y][x] = 0
-					}
-				}
+				x1, y1 = x-1, y+1
+				x2, y2 = x+1, y-1
 
+			default:
+				continue
+			}
+
+			if x1 >= 0 && x1 < len(g[y]) && y1 >= 0 && y1 < len(g) && g[y1][x1] > value {
+				result[y][x] = 0.0
+			}
+			if x2 >= 0 && x2 < len(g[y]) && y2 >= 0 && y2 < len(g) && g[y2][x2] > value {
+				result[y][x] = 0.0
+			}
+		}
+	}
+
+	return result
+}
+
+func DoubleThreshold(m [][]float64, lower, upper float64) [][]float64 {
+	result := make([][]float64, len(m))
+	for i := range result {
+		result[i] = make([]float64, len(m[i]))
+		copy(result[i], m[i])
+	}
+
+	for i, row := range result {
+		for j, value := range row {
+			if value < lower {
+				result[i][j] = 0.0
+			} else if value >= lower && value < upper {
+				// mark weak
+				result[i][j] = WEAK_EDGE
+			} else {
+				// mark strong
+				result[i][j] = STRONG_EDGE
 			}
 		}
 	}
@@ -179,7 +187,6 @@ func SuppressGradient(g [][]float64, d [][]float64) [][]float64 {
 }
 
 func Suppress(m [][]float64) [][]float64 {
-
 	result := make([][]float64, len(m))
 	for i := range len(result) {
 		result[i] = make([]float64, len(m[0]))
@@ -211,6 +218,35 @@ func Suppress(m [][]float64) [][]float64 {
 	return result
 }
 
+func HysteresisEdgeTracking(m [][]float64) [][]float64 {
+	result := make([][]float64, len(m))
+	for i := range result {
+		result[i] = make([]float64, len(m[i]))
+		copy(result[i], m[i])
+	}
+
+	for y := range result {
+	edge_tracking:
+		for x := range result[y] {
+			if result[y][x] != WEAK_EDGE {
+				continue
+			}
+
+			for i := -1; i <= 1; i++ {
+				for j := -1; j <= 1; j++ {
+					if y+i >= 0 && y+i < len(result) && x+j >= 0 && x+j < len(result[y]) && result[y+i][x+j] == 65535 {
+						result[y][x] = STRONG_EDGE
+						continue edge_tracking
+					}
+				}
+			}
+			result[y][x] = 0.0
+		}
+	}
+
+	return result
+}
+
 func CannyEdgeDetect(img image.Gray16) image.Gray16 {
 	// img = GaussianFilter(img, 15, 2)
 	img = GaussianFilter(img, 5, 1.4)
@@ -235,6 +271,26 @@ func CannyEdgeDetect(img image.Gray16) image.Gray16 {
 		log.Fatal(err)
 	}
 	err = WriteImage("resources/suppressed.png", imgPtr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	threshold := DoubleThreshold(suppressed, 5000, 15000)
+	imgPtr, err = matrixToImage(threshold)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = WriteImage("resources/doublethreshold.png", imgPtr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	edge_detect := HysteresisEdgeTracking(threshold)
+	imgPtr, err = matrixToImage(edge_detect)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = WriteImage("resources/edges.png", imgPtr)
 	if err != nil {
 		log.Fatal(err)
 	}
