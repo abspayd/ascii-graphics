@@ -24,40 +24,12 @@ const (
 var (
 	palette = []byte{' ', '.', ':', ';', '-', '=', '+', '*', '#', '%', '@'}
 
-	//	palette = []byte{
-	//		'@',
-	//		'%',
-	//		'#',
-	//		'*',
-	//		'+',
-	//		'=',
-	//		'-',
-	//		';',
-	//		':',
-	//		'.',
-	//		' ',
-	//	}
-	//
-
+	// More detailed text gradient
 	// palette = []byte{'$', '@', 'B', '%', '8', '&', 'W', 'M', '#', '*', 'o', 'a', 'h', 'k', 'b', 'd', 'p', 'q', 'w', 'm', 'Z', 'O', '0', 'Q', 'L', 'C', 'J', 'U', 'Y', 'X', 'z', 'c', 'v', 'u', 'n', 'x', 'r', 'j', 'f', 't', '/', '\\', '|', '(', ')', '1', '{', '}', '[', ']', '?', '-', '_', '+', '~', '<', '>', 'i', '!', 'l', 'I', ';', ':', ',', '"', '^', '`', '\'', '.', ' '}
 )
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 func fitImageToTerminal(img image.Image, termSize image.Rectangle) image.Image {
 	img_bounds := img.Bounds()
-	// img_ratio := float64(img_bounds.Dx()) / float64(img_bounds.Dy())
 
 	output_height := min(img_bounds.Dy(), termSize.Dy())
 
