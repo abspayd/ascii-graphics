@@ -1,4 +1,4 @@
-package main
+package image_processing
 
 import (
 	"bufio"
@@ -12,7 +12,6 @@ import (
 
 	"golang.org/x/term"
 
-	"abspayd/ascii-graphics/internal/image_processing"
 	"abspayd/ascii-graphics/internal/logger"
 )
 
@@ -63,7 +62,7 @@ func fitImageToTerminal(img image.Image, termSize image.Rectangle) image.Image {
 	return output
 }
 
-func main() {
+func Generate_Image(source_path, output_path, debug_path string, lower_threshold, upper_threshold float64, kernel_size int, sigma float64) error {
 	logFile, err := os.OpenFile("log.txt", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	logger.Logger = log.New(logFile, "", log.Ldate|log.Ltime|log.Lshortfile)
 
@@ -74,62 +73,35 @@ func main() {
 
 	term_width, term_height, err := term.GetSize(int(os.Stdin.Fd()))
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-
-	// fmt.Printf("%d, %d\n", term_width, term_height)
 
 	fmt.Print("\x1B[?1049h")       // Enter alternate screen buffer
 	defer fmt.Print("\x1B[?1049l") // Exit alternate screen buffer
 
-	// var buf bytes.Buffer
-	// fmt.Fprint(&buf, "\x1B[2J\x1B[H") // Erase screen and home cursor
-
-	// for range term_height {
-	// 	for range term_width {
-	// 		fmt.Fprint(&buf, "#")
-	// 	}
-	// 	fmt.Fprint(&buf, "\r\n")
-	// }
-
-	// _, err = os.Stdout.Write(buf.Bytes())
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// path := "resources/johann-siemens-EPy0gBJzzZU-unsplash.jpg"
-	// path := "resources/circle.png"
-	// path := "resources/tree-1798062137.jpg"
-	path := "resources/Bikesgray.jpg"
-	// path := "resources/lizard.jpg"
-	// path := "resources/valve.png"
-	image_reader, err := os.Open(path)
+	image_reader, err := os.Open(source_path)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer image_reader.Close()
 
 	img, _, err := image.Decode(image_reader)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-
-	// img = fitImageToTerminal(img, image.Rect(0, 0, term_width, term_height))
 
 	gray := image.NewGray16(img.Bounds())
 	draw.Draw(gray, gray.Bounds(), img, img.Bounds().Min, draw.Src)
 
-	err = image_processing.WriteImage("resources/gray.png", gray)
+	err = WriteImage("resources/gray.png", gray)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	*gray = image_processing.CannyEdgeDetect(*gray)
+	*gray = CannyEdgeDetect(*gray)
 
 	var buf bytes.Buffer
 	fmt.Fprint(&buf, "\x1B[2J\x1B[H") // Erase screen and home cursor
-
-	// slices.Reverse(palette)
 
 	for y := range term_height {
 		for x := range term_width {
@@ -138,28 +110,22 @@ func main() {
 		}
 	}
 
-	// for y := 0; y <= gray.Bounds().Max.Y && (y/scale_y) <= term_height; y += scale_y {
-	// 	for x := 0; x <= gray.Bounds().Max.X && (x/scale_x) <= term_width; x += scale_x {
-	// 		// color := gray.Gray16At(x, y)
-	// 		// fmt.Fprint(&buf, string(palette[int(color.Y)%len(palette)]))
-	// 		fmt.Fprint(&buf, "o")
-	// 	}
-	// }
-
 	_, err = os.Stdout.Write(buf.Bytes())
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	reader := bufio.NewReader(os.Stdin)
 	for true {
 		char, _, err := reader.ReadRune()
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		if char == 'q' || char == CTRL_C || char == ESC {
 			break
 		}
 	}
+
+	return nil
 }

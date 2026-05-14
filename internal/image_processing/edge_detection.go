@@ -15,20 +15,6 @@ const (
 	STRONG_EDGE = 65535
 )
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 func WriteImage(path string, img image.Image) error {
 	file, err := os.Create(path)
 	if err != nil {
