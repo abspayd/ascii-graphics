@@ -233,12 +233,16 @@ func HysteresisEdgeTracking(m [][]float64) [][]float64 {
 	return result
 }
 
-func CannyEdgeDetect(img image.Gray16) image.Gray16 {
-	// img = GaussianFilter(img, 15, 2)
-	img = GaussianFilter(img, 5, 1.4)
-	err := WriteImage("resources/gaussian.png", &img)
-	if err != nil {
-		log.Fatal(err)
+func CannyEdgeDetect(img image.Gray16, debug_path string, lower_threshold, upper_threshold float64, kernel_size int, sigma float64) image.Gray16 {
+	img = GaussianFilter(img, kernel_size, sigma)
+
+	debug := len(debug_path) > 0
+
+	if debug {
+		err := WriteImage(debug_path+"/gaussian.png", &img)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	g, d := SobelGradient(img)
@@ -246,9 +250,11 @@ func CannyEdgeDetect(img image.Gray16) image.Gray16 {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = WriteImage("resources/gradient.png", imgPtr)
-	if err != nil {
-		log.Fatal(err)
+	if debug {
+		err = WriteImage(debug_path+"/gradient.png", imgPtr)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	suppressed := SuppressGradient(g, d)
@@ -256,9 +262,11 @@ func CannyEdgeDetect(img image.Gray16) image.Gray16 {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = WriteImage("resources/suppressed.png", imgPtr)
-	if err != nil {
-		log.Fatal(err)
+	if debug {
+		err = WriteImage(debug_path+"/suppressed.png", imgPtr)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	threshold := DoubleThreshold(suppressed, 5000, 15000)
@@ -266,9 +274,11 @@ func CannyEdgeDetect(img image.Gray16) image.Gray16 {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = WriteImage("resources/doublethreshold.png", imgPtr)
-	if err != nil {
-		log.Fatal(err)
+	if debug {
+		err = WriteImage(debug_path+"/doublethreshold.png", imgPtr)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	edge_detect := HysteresisEdgeTracking(threshold)
@@ -276,9 +286,11 @@ func CannyEdgeDetect(img image.Gray16) image.Gray16 {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = WriteImage("resources/edges.png", imgPtr)
-	if err != nil {
-		log.Fatal(err)
+	if debug {
+		err = WriteImage(debug_path+"/edges.png", imgPtr)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	return *imgPtr

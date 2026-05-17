@@ -27,41 +27,6 @@ var (
 	// palette = []byte{'$', '@', 'B', '%', '8', '&', 'W', 'M', '#', '*', 'o', 'a', 'h', 'k', 'b', 'd', 'p', 'q', 'w', 'm', 'Z', 'O', '0', 'Q', 'L', 'C', 'J', 'U', 'Y', 'X', 'z', 'c', 'v', 'u', 'n', 'x', 'r', 'j', 'f', 't', '/', '\\', '|', '(', ')', '1', '{', '}', '[', ']', '?', '-', '_', '+', '~', '<', '>', 'i', '!', 'l', 'I', ';', ':', ',', '"', '^', '`', '\'', '.', ' '}
 )
 
-func fitImageToTerminal(img image.Image, termSize image.Rectangle) image.Image {
-	img_bounds := img.Bounds()
-
-	output_height := min(img_bounds.Dy(), termSize.Dy())
-
-	img_ratio := float64(img_bounds.Dy()) / float64(output_height)
-
-	// output_width := min(int(float64(output_height)*img_ratio), termSize.Dx())
-	output_width := int(float64(output_height) * img_ratio)
-
-	// output_height := termSize.Dy()
-	// output_width := termSize.Dx()
-	output_bounds := image.Rectangle{
-		Max: image.Point{X: output_width, Y: output_height},
-	}
-
-	logger.Logger.Printf("Image ratio: %f\n", img_ratio)
-	logger.Logger.Printf("Image: width:%d, height:%d\n", img_bounds.Dx(), img_bounds.Dy())
-	logger.Logger.Printf("Terminal: width:%d, height:%d\n", termSize.Dx(), termSize.Dy())
-	logger.Logger.Printf("Output: width:%d, height:%d\n", output_width, output_height)
-
-	output := image.NewRGBA(output_bounds)
-	x_factor := img_bounds.Dx() / output_width
-	y_factor := img_bounds.Dy() / output_height
-
-	for x := range output_bounds.Max.X {
-		for y := range output_bounds.Max.Y {
-			color := img.At(x*x_factor, y*y_factor)
-			output.Set(x, y, color)
-		}
-	}
-
-	return output
-}
-
 func Generate_Image(source_path, output_path, debug_path string, lower_threshold, upper_threshold float64, kernel_size int, sigma float64) error {
 	logFile, err := os.OpenFile("log.txt", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	logger.Logger = log.New(logFile, "", log.Ldate|log.Ltime|log.Lshortfile)
@@ -93,12 +58,29 @@ func Generate_Image(source_path, output_path, debug_path string, lower_threshold
 	gray := image.NewGray16(img.Bounds())
 	draw.Draw(gray, gray.Bounds(), img, img.Bounds().Min, draw.Src)
 
-	err = WriteImage("resources/gray.png", gray)
-	if err != nil {
-		return err
+	if len(debug_path) > 0 {
+		err = WriteImage(debug_path+"/gray.png", gray)
+		if err != nil {
+			return err
+		}
 	}
 
-	*gray = CannyEdgeDetect(*gray)
+	*gray = CannyEdgeDetect(*gray, debug_path, lower_threshold, upper_threshold, kernel_size, sigma)
+
+	if len(output_path) > 0 {
+		file, err := os.Create(output_path)
+		if err != nil {
+			return err
+		}
+		for y := range gray.Bounds().Max.Y {
+			for x := range gray.Bounds().Max.X {
+				color := gray.Gray16At(x, y)
+				fmt.Fprint(file, string(palette[int(color.Y)%len(palette)]))
+			}
+			fmt.Fprintln(file)
+		}
+		file.Close()
+	}
 
 	var buf bytes.Buffer
 	fmt.Fprint(&buf, "\x1B[2J\x1B[H") // Erase screen and home cursor
