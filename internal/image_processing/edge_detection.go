@@ -284,7 +284,7 @@ func CannyEdgeDetect(img image.Gray16, debug_path string, lower_threshold, upper
 		}
 	}
 
-	threshold := DoubleThreshold(suppressed, 5000, 15000)
+	threshold := DoubleThreshold(suppressed, lower_threshold, upper_threshold)
 	imgPtr, err = matrixToImage(threshold)
 	if err != nil {
 		return image.Gray16{}, err
