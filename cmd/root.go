@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"abspayd/ascii-graphics/internal/image_processing"
+	"abspayd/ascii-graphics/internal/logger"
 
 	"github.com/spf13/cobra"
 )
@@ -32,7 +33,11 @@ var (
 		Use:   "ascii-art",
 		Short: "Convert images to ASCII art",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return image_processing.Generate_Image(source_path, output_path, debug_path, lower_threshold, upper_threshold, kernel_size, sigma)
+			err := image_processing.Generate_Image(source_path, output_path, debug_path, lower_threshold, upper_threshold, kernel_size, sigma)
+			if err != nil {
+				logger.Logger.Println(err)
+			}
+			return err
 		},
 	}
 )

@@ -1,11 +1,9 @@
 package image_processing
 
 import (
-	"abspayd/ascii-graphics/internal/logger"
 	"fmt"
 	"image"
 	"image/png"
-	"log"
 	"math"
 	"os"
 )
@@ -20,18 +18,15 @@ func WriteImage(path string, img image.Image) error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			log.Fatal(err)
-		}
-	}()
+
+	defer file.Close()
 
 	return png.Encode(file, img)
 }
 
 // Find the sobel gradient for an image
 // Returns a magnitude gradient and the direction gradient
-func SobelGradient(img image.Gray16) ([][]float64, [][]float64) {
+func SobelGradient(img image.Gray16, debug_path string) ([][]float64, [][]float64, error) {
 	img_width := img.Bounds().Max.X
 	img_height := img.Bounds().Max.Y
 
@@ -51,14 +46,23 @@ func SobelGradient(img image.Gray16) ([][]float64, [][]float64) {
 
 	gx_image, err := matrixToImage(gx)
 	if err != nil {
-		log.Fatal(err)
+		return nil, nil, err
 	}
-	WriteImage("resources/gx.png", gx_image)
+	if len(debug_path) > 0 {
+		if err := WriteImage(debug_path+"/gx.png", gx_image); err != nil {
+			return nil, nil, err
+		}
+	}
+
 	gy_image, err := matrixToImage(gy)
 	if err != nil {
-		log.Fatal(err)
+		return nil, nil, err
 	}
-	WriteImage("resources/gy.png", gy_image)
+	if len(debug_path) > 0 {
+		if err := WriteImage(debug_path+"/gy.png", gy_image); err != nil {
+			return nil, nil, err
+		}
+	}
 
 	g := make([][]float64, img_height)
 	theta := make([][]float64, img_height)
@@ -77,7 +81,7 @@ func SobelGradient(img image.Gray16) ([][]float64, [][]float64) {
 		}
 	}
 
-	return g, theta
+	return g, theta, nil
 }
 
 // Round an angle to a multiple of a quarter of pi
@@ -102,9 +106,9 @@ func roundAngle(angle float64) float64 {
 	return result
 }
 
-func SuppressGradient(g [][]float64, d [][]float64) [][]float64 {
+func SuppressGradient(g [][]float64, d [][]float64) ([][]float64, error) {
 	if len(g) != len(d) {
-		log.Fatal("Invalid state: Gradient magnitude and direction do not match!")
+		return nil, fmt.Errorf("Invalid state: Gradient magnitude and direction do not match!")
 	}
 
 	result := make([][]float64, len(g))
@@ -145,7 +149,7 @@ func SuppressGradient(g [][]float64, d [][]float64) [][]float64 {
 		}
 	}
 
-	return result
+	return result, nil
 }
 
 func DoubleThreshold(m [][]float64, lower, upper float64) [][]float64 {
@@ -233,67 +237,78 @@ func HysteresisEdgeTracking(m [][]float64) [][]float64 {
 	return result
 }
 
-func CannyEdgeDetect(img image.Gray16, debug_path string, lower_threshold, upper_threshold float64, kernel_size int, sigma float64) image.Gray16 {
-	img = GaussianFilter(img, kernel_size, sigma)
+func CannyEdgeDetect(img image.Gray16, debug_path string, lower_threshold, upper_threshold float64, kernel_size int, sigma float64) (image.Gray16, error) {
+	img, err := GaussianFilter(img, kernel_size, sigma)
+	if err != nil {
+		return image.Gray16{}, nil
+	}
 
 	debug := len(debug_path) > 0
 
 	if debug {
 		err := WriteImage(debug_path+"/gaussian.png", &img)
 		if err != nil {
-			log.Fatal(err)
+			return image.Gray16{}, nil
 		}
 	}
 
-	g, d := SobelGradient(img)
+	g, d, err := SobelGradient(img, debug_path)
+	if err != nil {
+		return image.Gray16{}, err
+	}
+
 	imgPtr, err := matrixToImage(g)
 	if err != nil {
-		log.Fatal(err)
+		return image.Gray16{}, err
 	}
 	if debug {
 		err = WriteImage(debug_path+"/gradient.png", imgPtr)
 		if err != nil {
-			log.Fatal(err)
+			return image.Gray16{}, err
 		}
 	}
 
-	suppressed := SuppressGradient(g, d)
+	suppressed, err := SuppressGradient(g, d)
+	if err != nil {
+		return image.Gray16{}, err
+	}
+
 	imgPtr, err = matrixToImage(suppressed)
 	if err != nil {
-		log.Fatal(err)
+		return image.Gray16{}, err
 	}
 	if debug {
 		err = WriteImage(debug_path+"/suppressed.png", imgPtr)
 		if err != nil {
-			log.Fatal(err)
+			return image.Gray16{}, err
 		}
 	}
 
 	threshold := DoubleThreshold(suppressed, 5000, 15000)
 	imgPtr, err = matrixToImage(threshold)
 	if err != nil {
-		log.Fatal(err)
+		return image.Gray16{}, err
 	}
 	if debug {
 		err = WriteImage(debug_path+"/doublethreshold.png", imgPtr)
 		if err != nil {
-			log.Fatal(err)
+			return image.Gray16{}, err
 		}
 	}
 
 	edge_detect := HysteresisEdgeTracking(threshold)
 	imgPtr, err = matrixToImage(edge_detect)
 	if err != nil {
-		log.Fatal(err)
+		return image.Gray16{}, err
 	}
 	if debug {
 		err = WriteImage(debug_path+"/edges.png", imgPtr)
 		if err != nil {
-			log.Fatal(err)
+			return image.Gray16{}, err
 		}
 	}
 
-	return *imgPtr
+	return *imgPtr, nil
 }
 
 func generateGaussianKernel(size int, sigma float64) ([][]float64, error) {
@@ -329,18 +344,18 @@ func generateGaussianKernel(size int, sigma float64) ([][]float64, error) {
 	return kernel, nil
 }
 
-func GaussianFilter(img image.Gray16, kernel_size int, sigma float64) image.Gray16 {
+func GaussianFilter(img image.Gray16, kernel_size int, sigma float64) (image.Gray16, error) {
 	kernel, err := generateGaussianKernel(kernel_size, sigma)
 	if err != nil {
-		logger.Logger.Fatal(err)
+		return image.Gray16{}, err
 	}
 
 	m := convolute(img, kernel)
 	imgPtr, err := matrixToImage(m)
 	if err != nil {
-		log.Fatal(err)
+		return image.Gray16{}, err
 	}
 	result := *imgPtr
 
-	return result
+	return result, nil
 }

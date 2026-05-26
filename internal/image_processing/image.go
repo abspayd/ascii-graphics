@@ -65,7 +65,10 @@ func Generate_Image(source_path, output_path, debug_path string, lower_threshold
 		}
 	}
 
-	*gray = CannyEdgeDetect(*gray, debug_path, lower_threshold, upper_threshold, kernel_size, sigma)
+	*gray, err = CannyEdgeDetect(*gray, debug_path, lower_threshold, upper_threshold, kernel_size, sigma)
+	if err != nil {
+		return err
+	}
 
 	if len(output_path) > 0 {
 		file, err := os.Create(output_path)
