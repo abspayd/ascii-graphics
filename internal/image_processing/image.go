@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"image"
+	"image/color"
 	"image/draw"
 	_ "image/jpeg"
 	"log"
@@ -65,7 +66,9 @@ func Generate_Image(source_path, output_path, debug_path string, lower_threshold
 		}
 	}
 
-	*gray, err = CannyEdgeDetect(*gray, debug_path, lower_threshold, upper_threshold, kernel_size, sigma)
+	output := image.NewGray16(gray.Bounds())
+	copy(output.Pix, gray.Pix)
+	*output, err = CannyEdgeDetect(*output, debug_path, lower_threshold, upper_threshold, kernel_size, sigma)
 	if err != nil {
 		return err
 	}
@@ -77,8 +80,11 @@ func Generate_Image(source_path, output_path, debug_path string, lower_threshold
 		}
 		for y := range gray.Bounds().Max.Y {
 			for x := range gray.Bounds().Max.X {
-				color := gray.Gray16At(x, y)
-				fmt.Fprint(file, string(palette[int(color.Y)%len(palette)]))
+				output_color := color.Black
+				if output.Gray16At(x, y).Y > 0 {
+					output_color = gray.Gray16At(x, y)
+				}
+				fmt.Fprint(file, string(palette[int(output_color.Y)%len(palette)]))
 			}
 			fmt.Fprintln(file)
 		}
@@ -90,8 +96,11 @@ func Generate_Image(source_path, output_path, debug_path string, lower_threshold
 
 	for y := range term_height {
 		for x := range term_width {
-			color := gray.Gray16At(x, y)
-			fmt.Fprint(&buf, string(palette[int(color.Y)%len(palette)]))
+			output_color := color.Black
+			if output.Gray16At(x, y).Y > 0 {
+				output_color = gray.Gray16At(x, y)
+			}
+			fmt.Fprint(&buf, string(palette[int(output_color.Y)%len(palette)]))
 		}
 	}
 
