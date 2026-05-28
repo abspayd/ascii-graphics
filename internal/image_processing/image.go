@@ -8,12 +8,9 @@ import (
 	"image/color"
 	"image/draw"
 	_ "image/jpeg"
-	"log"
 	"os"
 
 	"golang.org/x/term"
-
-	"abspayd/ascii-graphics/internal/logger"
 )
 
 const (
@@ -28,12 +25,7 @@ var (
 	// palette = []byte{'$', '@', 'B', '%', '8', '&', 'W', 'M', '#', '*', 'o', 'a', 'h', 'k', 'b', 'd', 'p', 'q', 'w', 'm', 'Z', 'O', '0', 'Q', 'L', 'C', 'J', 'U', 'Y', 'X', 'z', 'c', 'v', 'u', 'n', 'x', 'r', 'j', 'f', 't', '/', '\\', '|', '(', ')', '1', '{', '}', '[', ']', '?', '-', '_', '+', '~', '<', '>', 'i', '!', 'l', 'I', ';', ':', ',', '"', '^', '`', '\'', '.', ' '}
 )
 
-func Generate_Image(source_path, output_path, debug_path string, lower_threshold, upper_threshold float64, kernel_size int, sigma float64) error {
-	logFile, err := os.OpenFile("log.txt", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	logger.Logger = log.New(logFile, "", log.Ldate|log.Ltime|log.Lshortfile)
-
-	logger.Logger.Println("========")
-
+func Generate_Image(source_path, output_path, debug_path string, lower_threshold, upper_threshold int64, kernel_size int, sigma float64) error {
 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	defer term.Restore(int(os.Stdin.Fd()), oldState)
 

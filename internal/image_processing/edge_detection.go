@@ -1,6 +1,7 @@
 package image_processing
 
 import (
+	"abspayd/ascii-graphics/internal/logger"
 	"fmt"
 	"image"
 	"image/png"
@@ -152,7 +153,7 @@ func SuppressGradient(g [][]float64, d [][]float64) ([][]float64, error) {
 	return result, nil
 }
 
-func DoubleThreshold(m [][]float64, lower, upper float64) [][]float64 {
+func DoubleThreshold(m [][]float64, lower, upper int64) [][]float64 {
 	result := make([][]float64, len(m))
 	for i := range result {
 		result[i] = make([]float64, len(m[i]))
@@ -161,9 +162,9 @@ func DoubleThreshold(m [][]float64, lower, upper float64) [][]float64 {
 
 	for i, row := range result {
 		for j, value := range row {
-			if value < lower {
+			if int64(value) < lower {
 				result[i][j] = 0.0
-			} else if value >= lower && value < upper {
+			} else if int64(value) >= lower && int64(value) < upper {
 				// mark weak
 				result[i][j] = WEAK_EDGE
 			} else {
@@ -237,10 +238,11 @@ func HysteresisEdgeTracking(m [][]float64) [][]float64 {
 	return result
 }
 
-func CannyEdgeDetect(img image.Gray16, debug_path string, lower_threshold, upper_threshold float64, kernel_size int, sigma float64) (image.Gray16, error) {
+func CannyEdgeDetect(img image.Gray16, debug_path string, lower_threshold, upper_threshold int64, kernel_size int, sigma float64) (image.Gray16, error) {
+	logger.Logger.Printf("Applying Gaussian blur with kernel size %d and sigma %f\n", kernel_size, sigma)
 	img, err := GaussianFilter(img, kernel_size, sigma)
 	if err != nil {
-		return image.Gray16{}, nil
+		return image.Gray16{}, err
 	}
 
 	debug := len(debug_path) > 0
@@ -248,10 +250,11 @@ func CannyEdgeDetect(img image.Gray16, debug_path string, lower_threshold, upper
 	if debug {
 		err := WriteImage(debug_path+"/gaussian.png", &img)
 		if err != nil {
-			return image.Gray16{}, nil
+			return image.Gray16{}, err
 		}
 	}
 
+	logger.Logger.Println("Applying Sobel gradient")
 	g, d, err := SobelGradient(img, debug_path)
 	if err != nil {
 		return image.Gray16{}, err
@@ -268,6 +271,7 @@ func CannyEdgeDetect(img image.Gray16, debug_path string, lower_threshold, upper
 		}
 	}
 
+	logger.Logger.Println("Suppressing gradient")
 	suppressed, err := SuppressGradient(g, d)
 	if err != nil {
 		return image.Gray16{}, err
@@ -284,6 +288,7 @@ func CannyEdgeDetect(img image.Gray16, debug_path string, lower_threshold, upper
 		}
 	}
 
+	logger.Logger.Printf("Applying double threshold with lower threshold %f and upper threshold %f\n", lower_threshold, upper_threshold)
 	threshold := DoubleThreshold(suppressed, lower_threshold, upper_threshold)
 	imgPtr, err = matrixToImage(threshold)
 	if err != nil {
@@ -296,6 +301,7 @@ func CannyEdgeDetect(img image.Gray16, debug_path string, lower_threshold, upper
 		}
 	}
 
+	logger.Logger.Println("Applying hysteresis edge tracking")
 	edge_detect := HysteresisEdgeTracking(threshold)
 	imgPtr, err = matrixToImage(edge_detect)
 	if err != nil {
