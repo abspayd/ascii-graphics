@@ -89,15 +89,6 @@ Each pipeline stage writes a PNG to `resources/`:
 | `doublethreshold.png` | After double thresholding |
 | `edges.png` | Final edge map |
 
-## What I Learned
-
-<!-- TODO: -->
-<!-- - Guassian blur -->
-<!-- - Convolutions on an image -->
-<!-- - Approximating partial derivatives on an image -->
-<!-- - Using alternate screen buffers in the terminal -->
-<!-- - Goroutines -->
-
 ## Sources
  - https://en.wikipedia.org/wiki/Gaussian_filter
  - https://en.wikipedia.org/wiki/Canny_edge_detector
