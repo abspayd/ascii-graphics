@@ -62,7 +62,7 @@ The image is processed through the stages of the Canny edge detection algorithm:
 
 ## Debug Output
 
-When `--debug-path` is provided, PNG images are saved at each pipeline stage:
+When `--debug-path` is provided, PNG images are saved at each stage of the image processing steps:
 
 | File | Stage |
 |------|-------|
