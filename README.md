@@ -1,51 +1,44 @@
 # ascii-graphics
 
-A terminal ASCII art generator using Canny's edge detection algorithm.
+A terminal ASCII art generator
 
-## Overview
+`ascii-graphics` loads an image, applies the Canny edge detection algorithm, and renders the result as ASCII art in your terminal.
 
-`ascii-graphics` loads a raster image, applies the Canny edge detection algorithm, and renders the result as ASCII art in your terminal.
+<!-- TODO: Add screenshot or demo GIF -->
 
-This project is written in Go without the use of image processing libraries.
+## Features
 
-**Stages of edge detection:**
+- Canny edge detection pipeline implemented from scratch in Go
+- Supports any image of either PNG or JPG format as an input
+- Renders to an alternate terminal buffer (similar to `less`)
+- Optional text file output for generated ASCII art
+- Debug mode saves intermediate images at each pipeline stage and enables logging
 
-1. **Grayscale conversion** - input image is converted to grayscale
-2. **Gaussian blur** - smooth noise before gradient computation
-3. **Sobel gradient** - compute per-pixel gradient magnitude and direction using 3×3 Sobel kernels
-4. **Gradient magnitude thresholding** - thin edges to single-pixel width by zeroing non-local-maxima along the gradient direction
-5. **Double thresholding** - classify pixels as strong edges, weak edges, or suppressed
-6. **Hysteresis edge tracking** - promote weak edges connected to strong edges; discard the rest
-7. **ASCII rendering** - map pixel intensity to an ASCII shade gradient palette and writes to an alternate buffer in the terminal
+## Install
 
-<!-- Add screenshots here -->
-
-## Installation & Compilation
-
-**Prerequisites:**
-- Go 1.24 or later ([golang.org/dl](https://go.dev/dl/))
-
-**Clone and build:**
+**Prerequisites:** Go 1.24 or later ([golang.org/dl](https://go.dev/dl/))
 
 ```sh
 git clone https://github.com/abspayd/ascii-graphics.git
 cd ascii-graphics
-go build -o ascii-graphics ./cmd/main.go
+go build -o ascii-graphics .
 ```
 
-**Run:**
+## Usage
 
 ```sh
-./ascii-graphics
+./ascii-graphics -i path/to/image.jpg
 ```
 
-The binary must be run from the project root - it resolves the input image and debug output paths relative to the working directory.
-
-**Run without building:**
-
-```sh
-go run ./cmd/main.go
-```
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-i, --input` | *(required)* | Input image path (PNG or JPG) |
+| `-o, --output` | | Output file path for ASCII text |
+| `--debug-path` | | Directory to save intermediate pipeline images |
+| `-l, --lower-threshold` | `5000` | Lower edge detection threshold (0-65535) |
+| `-u, --upper-threshold` | `15000` | Upper edge detection threshold (0-65535) |
+| `-k, --blur-kernel-size` | `5` | Gaussian kernel size (must be odd) |
+| `-s, --blur-standard-deviation` | `1.4` | Gaussian blur sigma |
 
 **Controls:**
 
@@ -55,41 +48,34 @@ go run ./cmd/main.go
 | `Ctrl+C` | Quit |
 | `ESC` | Quit |
 
-**Changing the input image:**
+## How It Works
 
-The input image path is set in `cmd/main.go`. Edit the `path` variable to point to a different file:
+The image is processed through the stages of the Canny edge detection algorithm:
 
-```go
-// cmd/main.go
-path := "resources/your-image.jpg" // or "resources/your-image.png"
-```
+1. **Grayscale conversion** -- input image is converted to 16-bit grayscale
+2. **Gaussian blur** -- smooth noise before gradient computation
+3. **Sobel gradient** -- compute per-pixel gradient magnitude and direction using 3x3 Sobel kernels
+4. **Non-maximum suppression** -- thin edges to single-pixel width by zeroing non-local-maxima along the gradient direction
+5. **Double thresholding** -- classify pixels as strong edges, weak edges, or suppressed
+6. **Hysteresis edge tracking** -- promote weak edges connected to strong edges; discard the rest
+7. **ASCII rendering** -- map pixel intensity to a character palette and render to an alternate terminal buffer
 
-**Tuning the algorithm:**
+## Debug Output
 
-The Canny parameters are also set directly in `cmd/main.go` and `internal/image_processing/edge_detection.go`:
-
-| Parameter | Location | Default | Description |
-|-----------|----------|---------|--------|
-| Gaussian kernel size | `edge_detection.go` | `5` | Kernel size for blur convolutions. This can be used to increase / decrease area of blur. Larger areas have significantly more intense computation. |
-| Gaussian sigma (σ) | `edge_detection.go` | `1.4` | Standard deviations of Guassian blur. This can be used to increase blur intensity. |
-| Lower threshold | `edge_detection.go` | `5000` | Intensity threshold to cut off weak edges. |
-| Upper threshold | `edge_detection.go` | `15000` | Intensity threshold to be considered a "strong" edge. |
-
-**Debug output:**
-
-Each pipeline stage writes a PNG to `resources/`:
+When `--debug-path` is provided, PNG images are saved at each pipeline stage:
 
 | File | Stage |
 |------|-------|
-| `gray.png` | After grayscale conversion |
-| `gaussian.png` | After Gaussian blur |
+| `gray.png` | Grayscale conversion |
+| `gaussian.png` | Gaussian blur |
 | `gx.png` / `gy.png` | Sobel X and Y components |
 | `gradient.png` | Gradient magnitude |
-| `suppressed.png` | After non-maximum suppression |
-| `doublethreshold.png` | After double thresholding |
+| `suppressed.png` | Non-maximum suppression |
+| `doublethreshold.png` | Double thresholding |
 | `edges.png` | Final edge map |
 
-## Sources
- - https://en.wikipedia.org/wiki/Gaussian_filter
- - https://en.wikipedia.org/wiki/Canny_edge_detector
- - https://en.wikipedia.org/wiki/Sobel_operator
+## References
+
+- https://en.wikipedia.org/wiki/Gaussian_filter
+- https://en.wikipedia.org/wiki/Canny_edge_detector
+- https://en.wikipedia.org/wiki/Sobel_operator
