@@ -63,7 +63,8 @@ The image is processed through the stages of the Canny edge detection algorithm:
 ## Tips
 
 For the best results, scale the input image down significantly before using this tool and use mono fonts.  
-If the proportions look off, try stretching the image to counter-balance the problem. Not all fonts will use the same width and height for its characters.
+
+If the proportions look off, try stretching the image. Not all fonts will use the same width and height for its characters.
 
 ## Debug Output
 
