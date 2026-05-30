@@ -4,7 +4,7 @@ A terminal ASCII art generator
 
 `ascii-graphics` loads an image, applies the Canny edge detection algorithm, and renders the result as ASCII art in the terminal.
 
-<img src="./images/parrot.jpg" width="200" /><img src="./images/example-output.jpg" width="200" />
+<img src="./images/parrot.jpg" width="200" /> <img src="./images/example-output.jpg" width="200" />
 
 ## Features
 
