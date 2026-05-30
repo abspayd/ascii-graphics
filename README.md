@@ -52,17 +52,17 @@ go build -o ascii-graphics .
 
 The image is processed through the stages of the Canny edge detection algorithm:
 
-1. **Grayscale conversion** -- input image is converted to 16-bit grayscale
-2. **Gaussian blur** -- smooth noise before gradient computation
-3. **Sobel gradient** -- compute per-pixel gradient magnitude and direction using 3x3 Sobel kernels
-4. **Non-maximum suppression** -- thin edges to single-pixel width by zeroing non-local-maxima along the gradient direction
-5. **Double thresholding** -- classify pixels as strong edges, weak edges, or suppressed
-6. **Hysteresis edge tracking** -- promote weak edges connected to strong edges; discard the rest
-7. **ASCII rendering** -- map pixel intensity to a character palette and render to an alternate terminal buffer
+1. **Grayscale conversion** - input image is converted to a 16-bit grayscale image
+2. **Gaussian blur** - reduce the amount of noise in the image for  more clarity in the edge detection
+3. **Sobel gradient** - compute per-pixel gradient magnitude and direction using 3x3 Sobel kernels
+4. **Non-maximum suppression** - thin edges to single-pixel width by zeroing non-local-maxima along the gradient direction
+5. **Double thresholding** - classify pixels as strong edges, weak edges, or suppressed (suppressed pixels are removed entirely from the output)
+6. **Hysteresis edge tracking** - promote weak edges connected to strong edges; discard the rest
+7. **ASCII rendering** - map pixel intensity to a character palette and render to an alternate terminal buffer
 
 ## Debug Output
 
-When `--debug-path` is provided, PNG images are saved at each stage of the image processing steps:
+When `--debug-path` is provided, logging is enabled and PNG images are saved at each stage of the image processing steps:
 
 | File | Stage |
 |------|-------|
