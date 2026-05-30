@@ -70,15 +70,15 @@ If the proportions look off, try stretching the image. Not all fonts will use th
 
 When `--debug-path` is provided, logging is enabled and PNG images are saved at each stage of the image processing steps:
 
-| File | Stage |
-|------|-------|
-| `gray.png` | Grayscale conversion |
-| `gaussian.png` | Gaussian blur |
-| `gx.png` / `gy.png` | Sobel X and Y components |
-| `gradient.png` | Gradient magnitude |
-| `suppressed.png` | Non-maximum suppression |
-| `doublethreshold.png` | Double thresholding |
-| `edges.png` | Final edge map |
+| File | Stage | Example |
+|------|-------|---------|
+| `gray.png` | Grayscale conversion | <img src="./images/gray.png" /> |
+| `gaussian.png` | Gaussian blur | <img src="./images/gaussian.png" /> |
+| `gx.png` / `gy.png` | Sobel X and Y components | <img src="./images/gx.png" /><img src="./images/gy.png" /> |
+| `gradient.png` | Gradient magnitude | <img src="./images/gradient.png" /> |
+| `suppressed.png` | Non-maximum suppression | <img src="./images/suppressed.png" /> |
+| `doublethreshold.png` | Double thresholding | <img src="./images/doublethreshold.png" /> |
+| `edges.png` | Final edge map |  <img src="./images/edges.png" /> |
 
 ## References
 
