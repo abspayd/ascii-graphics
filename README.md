@@ -4,7 +4,7 @@ A terminal ASCII art generator
 
 `ascii-graphics` loads an image, applies the Canny edge detection algorithm, and renders the result as ASCII art in the terminal.
 
-<img src="./images/parrot.jpg" width="200" /> <img src="./images/example-output.jpg" width="200" />
+<img src="./images/parrot.jpg" height="350" /> <img src="./images/example-output.jpg" height="350" />
 
 ## Features
 
@@ -59,6 +59,10 @@ The image is processed through the stages of the Canny edge detection algorithm:
 5. **Double thresholding** - classify pixels as strong edges, weak edges, or suppressed (suppressed pixels are removed entirely from the output)
 6. **Hysteresis edge tracking** - promote weak edges connected to strong edges; discard the rest
 7. **ASCII rendering** - map pixel intensity to a character palette and render to an alternate terminal buffer
+
+## Tips
+
+For the best results, scale the input image down significantly before using this tool and use mono fonts. If the proportions look off, try stretching the image to counter-balance the problem. Not all fonts will use the same width and height for its characters.
 
 ## Debug Output
 
