@@ -2,7 +2,7 @@
 
 A terminal ASCII art generator
 
-`ascii-graphics` loads an image, applies the Canny edge detection algorithm, and renders the result as ASCII art in your terminal.
+`ascii-graphics` loads an image, applies the Canny edge detection algorithm, and renders the result as ASCII art in the terminal.
 
 <!-- TODO: Add screenshot or demo GIF -->
 
@@ -32,11 +32,11 @@ go build -o ascii-graphics .
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `-i, --input` | *(required)* | Input image path (PNG or JPG) |
+| `-i, --input` | | Input image path (PNG or JPG) _required_ |
 | `-o, --output` | | Output file path for ASCII text |
 | `--debug-path` | | Directory to save intermediate pipeline images |
-| `-l, --lower-threshold` | `5000` | Lower edge detection threshold (0-65535) |
-| `-u, --upper-threshold` | `15000` | Upper edge detection threshold (0-65535) |
+| `-l, --lower-threshold` | `5000` | Lower edge detection threshold (0 to 65535) |
+| `-u, --upper-threshold` | `15000` | Upper edge detection threshold (0 to 65535) |
 | `-k, --blur-kernel-size` | `5` | Gaussian kernel size (must be odd) |
 | `-s, --blur-standard-deviation` | `1.4` | Gaussian blur sigma |
 
@@ -45,7 +45,7 @@ go build -o ascii-graphics .
 | Key | Action |
 |-----|--------|
 | `q` | Quit |
-| `Ctrl+C` | Quit |
+| `CTRL+C` | Quit |
 | `ESC` | Quit |
 
 ## How It Works
